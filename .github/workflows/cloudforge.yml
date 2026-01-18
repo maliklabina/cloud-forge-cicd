@@ -1,0 +1,121 @@
+name: CloudForge CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+jobs:
+
+# ==================================================
+# STAGE 1: INFRASTRUCTURE (TERRAFORM)
+# ==================================================
+  infra:
+    name: Terraform Infra (EC2 + ECR)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Init
+      run: terraform init
+      working-directory: terraform
+
+    - name: Terraform Apply
+      run: |
+        if [ "${GITHUB_REF_NAME}" = "main" ]; then
+          terraform apply -auto-approve -var-file=env/prod.tfvars
+        else
+          terraform apply -auto-approve -var-file=env/dev.tfvars
+        fi
+      working-directory: terraform
+
+# ==================================================
+# STAGE 2: BUILD & PUSH DOCKER IMAGE
+# ==================================================
+  build_push:
+    name: Build & Push Docker Image
+    needs: infra
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password --region $AWS_REGION \
+        | docker login --username AWS --password-stdin \
+        $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+    - name: Build and Push Image
+      run: |
+        IMAGE=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/app-${GITHUB_REF_NAME}:${{ github.sha }}
+        docker build -t $IMAGE .
+        docker push $IMAGE
+        echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+# ==================================================
+# STAGE 3: DEPLOY TO EC2
+# ==================================================
+  deploy:
+    name: Deploy on EC2
+    needs: build_push
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set EC2 Host
+      run: |
+        if [ "${GITHUB_REF_NAME}" = "main" ]; then
+          echo "EC2_HOST=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+        else
+          echo "EC2_HOST=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+        fi
+      working-directory: terraform
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan $EC2_HOST >> ~/.ssh/known_hosts
+
+    - name: Deploy Application
+      run: |
+        ssh ec2-user@$EC2_HOST << EOF
+        aws ecr get-login-password --region $AWS_REGION \
+        | docker login --username AWS --password-stdin \
+        $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+        docker pull $IMAGE
+        docker stop app || true
+        docker rm app || true
+
+        docker run -d \
+          --name app \
+          -p 80:3000 \
+          $IMAGE
+        EOF
