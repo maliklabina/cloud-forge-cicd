@@ -1,11 +1,11 @@
-☁️ CloudForge – End-to-End DevOps CI/CD Pipeline
+## CloudForge – End-to-End DevOps CI/CD Pipeline
 
 CloudForge is an end-to-end DevOps project that demonstrates how cloud infrastructure provisioning and application deployment can be fully automated using modern DevOps practices. The project reflects real-world CI/CD workflows used in production systems.
 
 
+---
 
-
-🎯 Project Objective
+## Project Objective
 
 The goal of CloudForge is to:
 
@@ -19,10 +19,10 @@ Deploy the application on cloud virtual machines
 
 Support multiple environments (DEV and PROD) using a single pipeline
 
+---
 
 
-
-🏗️ Architecture Overview
+## Architecture Overview
 
 CloudForge follows a multi-stage cloud architecture designed for automation and scalability.
 
@@ -39,13 +39,13 @@ CloudForge follows a multi-stage cloud architecture designed for automation and 
 
 
 
+---
 
-
-Environments Supported
+## Environments Supported
 
 CloudForge supports two isolated environments:
 
-Development (DEV)
+### Development (DEV)
 
 Used for testing and validation
 
@@ -53,7 +53,7 @@ Triggered when changes are pushed to the develop branch
 
 Uses lightweight infrastructure
 
-Production (PROD)
+### Production (PROD)
 
 Used for real users
 
@@ -64,11 +64,11 @@ Uses production-grade infrastructure
 Both environments are completely isolated but managed using the same pipeline and infrastructure code.
 
 
+---
 
 
-
-🔁 CI/CD Pipeline Stages
-Stage 1: Infrastructure Provisioning
+## CI/CD Pipeline Stages
+### Stage 1: Infrastructure Provisioning
 
 Cloud infrastructure is created automatically using Terraform
 
@@ -76,7 +76,7 @@ EC2 instances, container registry, networking, and security components are provi
 
 Environment-specific configurations are applied for DEV and PROD
 
-Stage 2: Build and Push Application Image
+### Stage 2: Build and Push Application Image
 
 The application is containerized using Docker
 
@@ -84,7 +84,7 @@ Docker images are tagged based on the environment and commit
 
 Images are pushed to Amazon Elastic Container Registry (ECR)
 
-Stage 3: Application Deployment
+### Stage 3: Application Deployment
 
 The pipeline connects to the target EC2 instance
 
@@ -93,7 +93,7 @@ The latest container image is pulled from ECR
 The application is deployed and exposed to users
 
 
-
+---
 
 | Security Aspect      | Approach                                       |
 | -------------------- | ---------------------------------------------- |
@@ -104,9 +104,9 @@ The application is deployed and exposed to users
 
 
 
+---
 
-
-🚀 End-to-End Automation Flow
+## End-to-End Automation Flow
 Step	Description
 1	Developer pushes code to GitHub
 2	CI/CD pipeline is triggered automatically
@@ -117,8 +117,8 @@ Step	Description
 
 
 
-
-🧠 DevOps Concepts Demonstrated
+---
+## DevOps Concepts Demonstrated
 Concept	Implementation
 Infrastructure as Code	Terraform
 Continuous Integration	GitHub Actions
@@ -130,7 +130,7 @@ Cloud Automation	AWS-native services
 
 
 
-📈 Future Enhancements
+## Future Enhancements
 
 Blue-Green or Canary deployments
 
@@ -145,11 +145,5 @@ SSH-less deployment using AWS SSM
 Manual approval gates for production
 
 
-
-🏆 Project Significance
-
-CloudForge showcases how modern DevOps pipelines can automate infrastructure creation, application delivery, and deployment while maintaining environment isolation and security.
-
-📌 One-Line Summary
 
 CloudForge is a multi-environment CI/CD pipeline that automates cloud infrastructure provisioning, container image delivery, and deployment using Terraform, Docker, AWS, and GitHub Actions.
