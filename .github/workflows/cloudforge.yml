@@ -12,9 +12,9 @@ env:
 
 jobs:
 
-# ==================================================
+
 # STAGE 1: INFRASTRUCTURE (TERRAFORM)
-# ==================================================
+
   infra:
     name: Terraform Infra (EC2 + ECR)
     runs-on: ubuntu-latest
@@ -46,9 +46,9 @@ jobs:
         fi
       working-directory: terraform
 
-# ==================================================
+
 # STAGE 2: BUILD & PUSH DOCKER IMAGE
-# ==================================================
+
   build_push:
     name: Build & Push Docker Image
     needs: infra
@@ -78,9 +78,9 @@ jobs:
         docker push $IMAGE
         echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
-# ==================================================
+
 # STAGE 3: DEPLOY TO EC2
-# ==================================================
+
   deploy:
     name: Deploy on EC2
     needs: build_push
