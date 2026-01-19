@@ -13,7 +13,9 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     environment: production
-    
+    env:
+      NODE_OPTIONS: "--no-warnings"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -49,13 +51,16 @@ jobs:
       - name: Get Terraform Outputs
         id: terraform
         run: |
-          echo "outputs=$(terraform output -json)" >> $GITHUB_OUTPUT
+          echo "TF_OUTPUTS=$(terraform output -json)" >> $GITHUB_ENV
 
       - name: Post Apply Comment
+        if: github.event_name == 'pull_request'  # only posts if PR
         uses: actions/github-script@v6
+        env:
+          TF_OUTPUTS: ${{ env.TF_OUTPUTS }}
         with:
           script: |
-            const outputs = ${{ steps.terraform.outputs.outputs }};
+            const outputs = JSON.parse(process.env.TF_OUTPUTS);
             
             const outputsMarkdown = Object.entries(outputs).map(([key, value]) => {
               return `- **${key}**: ${typeof value === 'object' ? JSON.stringify(value).substring(0, 100) : value}`;
@@ -67,5 +72,3 @@ jobs:
               repo: context.repo.repo,
               body: `## ✅ Terraform Apply Successful\n\n### Outputs:\n${outputsMarkdown}`
             });
-        if: github.event_name == 'pull_request'
-        continue-on-error: true

@@ -17,7 +17,9 @@ jobs:
   destroy:
     runs-on: ubuntu-latest
     environment: production
-    
+    env:
+      NODE_OPTIONS: "--no-warnings"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -38,13 +40,15 @@ jobs:
         run: terraform init
 
       - name: Destroy Dev
-        if: ${{ github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'all' }}
+        if: ${{ github.event.inputs.environment == 'dev' }}
         run: terraform destroy -auto-approve -target=module.dev_infra
 
       - name: Destroy Prod
-        if: ${{ github.event.inputs.environment == 'prod' || github.event.inputs.environment == 'all' }}
+        if: ${{ github.event.inputs.environment == 'prod' }}
         run: terraform destroy -auto-approve -target=module.prod_infra
 
       - name: Destroy All
         if: ${{ github.event.inputs.environment == 'all' }}
         run: terraform destroy -auto-approve
+
+# comment

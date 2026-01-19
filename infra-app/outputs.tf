@@ -21,7 +21,7 @@ output "instance_public_ips" {
   value       = aws_instance.my_instance[*].public_ip
 }
 
-# Security Group
+# Security Group 
 output "security_group_id" {
   description = "ID of the security group"
   value       = aws_security_group.my_security_group.id

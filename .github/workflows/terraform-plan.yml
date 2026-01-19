@@ -10,7 +10,9 @@ on:
 jobs:
   plan:
     runs-on: ubuntu-latest
-    
+    env:
+      NODE_OPTIONS: "--no-warnings"   # suppress Node.js deprecation warnings
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -23,7 +25,6 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-        # in github secrets we have stored the AWS credentials
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
@@ -41,7 +42,7 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
-      - name: Upload Plan
+      - name: Upload Plan Artifact
         uses: actions/upload-artifact@v3
         with:
           name: tfplan
@@ -53,13 +54,15 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const plan = require('child_process')
-              .execSync('terraform show -no-color tfplan')
-              .toString();
+            const exec = require('child_process').execSync;
             
+            const plan = exec('terraform show -no-color tfplan').toString();
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `## Terraform Plan\n\`\`\`\n${plan.substring(0, 3000)}\n\`\`\``
             });
+
+# comment 
