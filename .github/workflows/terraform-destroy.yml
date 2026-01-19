@@ -1,0 +1,50 @@
+name: Terraform Destroy (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to destroy (dev/prod/all)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+          - all
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.14.3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Destroy Dev
+        if: ${{ github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'all' }}
+        run: terraform destroy -auto-approve -target=module.dev_infra
+
+      - name: Destroy Prod
+        if: ${{ github.event.inputs.environment == 'prod' || github.event.inputs.environment == 'all' }}
+        run: terraform destroy -auto-approve -target=module.prod_infra
+
+      - name: Destroy All
+        if: ${{ github.event.inputs.environment == 'all' }}
+        run: terraform destroy -auto-approve

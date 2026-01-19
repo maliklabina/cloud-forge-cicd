@@ -1,149 +1,191 @@
-## CloudForge – End-to-End DevOps CI/CD Pipeline
+# Terraform AWS Infrastructure & CI/CD Project
 
-CloudForge is an end-to-end DevOps project that demonstrates how cloud infrastructure provisioning and application deployment can be fully automated using modern DevOps practices. The project reflects real-world CI/CD workflows used in production systems.
+## Overview
 
+This project demonstrates how to provision AWS infrastructure using **Terraform modules** and deploy an application using **simple CI/CD pipelines**. The setup supports **multiple environments (dev, stg, prod)** with different configurations, while keeping the architecture intentionally simple and beginner-friendly.
 
----
+The goal of this project is to understand:
 
-## Project Objective
-
-The goal of CloudForge is to:
-
-Provision cloud infrastructure automatically
-
-Build and containerize an application
-
-Push container images to a central registry
-
-Deploy the application on cloud virtual machines
-
-Support multiple environments (DEV and PROD) using a single pipeline
+* Terraform module reuse
+* Environment-based infrastructure provisioning
+* Basic CI/CD pipeline design
+* Application deployment on EC2
 
 ---
 
+## Architecture Summary
 
-## Architecture Overview
-
-CloudForge follows a multi-stage cloud architecture designed for automation and scalability.
-
-
-| Layer              | Technology Used |
-| ------------------ | --------------- |
-| Source Control     | GitHub          |
-| CI/CD              | GitHub Actions  |
-| Infrastructure     | Terraform       |
-| Cloud Provider     | AWS             |
-| Compute            | EC2             |
-| Container Registry | Amazon ECR      |
-| Containerization   | Docker          |
-
-
+**Cloud Provider:** AWS
+**Infrastructure Tool:** Terraform
+**Compute:** EC2
+**Storage:** S3
+**State Locking / DB:** DynamoDB
+**Deployment Model:** Docker on EC2
+**Environments:** dev, stg, prod
 
 ---
 
-## Environments Supported
+## Repository Structure
 
-CloudForge supports two isolated environments:
-
-### Development (DEV)
-
-Used for testing and validation
-
-Triggered when changes are pushed to the develop branch
-
-Uses lightweight infrastructure
-
-### Production (PROD)
-
-Used for real users
-
-Triggered when changes are merged into the main branch
-
-Uses production-grade infrastructure
-
-Both environments are completely isolated but managed using the same pipeline and infrastructure code.
-
+```
+terraform-modules-app/
+│
+├── infra-app/                 # Reusable Terraform module
+│   ├── dynamodb.tf            # DynamoDB table
+│   ├── ec2.tf                 # EC2 instances
+│   ├── s3.tf                  # S3 bucket
+│   ├── terra-key-ec2.pub      # SSH public key
+│   ├── variables.tf           # Input variables
+│   ├── main.tf                # Module wiring
+│   ├── providers.tf           # AWS provider config
+│   └── terraform.tf           # Backend & required providers
+│
+├── main.tf                    # Root module (dev / stg / prod)
+└── README.md
+```
 
 ---
 
+## Environment Configuration
 
-## CI/CD Pipeline Stages
-### Stage 1: Infrastructure Provisioning
+Each environment is created by calling the same Terraform module with different inputs.
 
-Cloud infrastructure is created automatically using Terraform
+| Environment | Instance Type | Instance Count |
+| ----------- | ------------- | -------------- |
+| dev         | t2.micro      | 1              |
+| stg         | t2.small      | 1              |
+| prod        | t2.medium     | 2              |
 
-EC2 instances, container registry, networking, and security components are provisioned
-
-Environment-specific configurations are applied for DEV and PROD
-
-### Stage 2: Build and Push Application Image
-
-The application is containerized using Docker
-
-Docker images are tagged based on the environment and commit
-
-Images are pushed to Amazon Elastic Container Registry (ECR)
-
-### Stage 3: Application Deployment
-
-The pipeline connects to the target EC2 instance
-
-The latest container image is pulled from ECR
-
-The application is deployed and exposed to users
-
+All environments are managed from a single Terraform root configuration.
 
 ---
 
-| Security Aspect      | Approach                                       |
-| -------------------- | ---------------------------------------------- |
-| Secrets              | Stored in GitHub Secrets                       |
-| SSH Keys             | Private keys never stored in repository        |
-| AWS Access           | Managed via IAM with least privilege           |
-| Infrastructure State | No sensitive data committed to version control |
+## Terraform Deployment Steps (Manual)
 
+### 1. Initialize Terraform
 
+```bash
+terraform init
+```
+
+### 2. Validate Configuration
+
+```bash
+terraform validate
+```
+
+### 3. Review Execution Plan
+
+```bash
+terraform plan
+```
+
+### 4. Apply Infrastructure
+
+```bash
+terraform apply
+```
+
+This creates infrastructure for **dev, stg, and prod** together.
 
 ---
 
-## End-to-End Automation Flow
-Step	Description
-1	Developer pushes code to GitHub
-2	CI/CD pipeline is triggered automatically
-3	Infrastructure is provisioned or updated
-4	Application image is built and pushed
-5	Application is deployed to EC2
-6	Environment is updated without manual steps
+## Destroy Only Staging Environment
 
+To delete only the staging resources:
 
+```bash
+terraform destroy -target=module.stg-infra
+```
+
+Dev and Prod environments remain untouched.
 
 ---
-## DevOps Concepts Demonstrated
-Concept	Implementation
-Infrastructure as Code	Terraform
-Continuous Integration	GitHub Actions
-Continuous Deployment	Automated EC2 deployment
-Environment Isolation	DEV and PROD separation
-Containerization	Docker
-Cloud Automation	AWS-native services
 
+## CI/CD Pipeline Design
 
+### Infrastructure Pipeline
 
+**Purpose:** Provision AWS infrastructure using Terraform
 
-## Future Enhancements
+**Stages:**
 
-Blue-Green or Canary deployments
+1. Terraform Init
+2. Terraform Validate
+3. Terraform Plan
+4. Terraform Apply (with manual approval)
 
-Load balancer and auto-scaling support
+**Pipeline Flow:**
 
-Monitoring and logging integration
+```
+Code Commit → Terraform Init → Plan → Manual Approval → Apply
+```
 
-Database integration with backups
+---
 
-SSH-less deployment using AWS SSM
+### Application CI Pipeline
 
-Manual approval gates for production
+**Purpose:** Build and publish application artifacts
 
+**Steps:**
 
+* Build application
+* Build Docker image
+* Push image to container registry (ECR)
 
-CloudForge is a multi-environment CI/CD pipeline that automates cloud infrastructure provisioning, container image delivery, and deployment using Terraform, Docker, AWS, and GitHub Actions.
+---
+
+### Application CD Pipeline
+
+**Purpose:** Deploy application to EC2
+
+**Steps:**
+
+* SSH into EC2
+* Pull latest Docker image
+* Stop existing container
+* Start new container
+
+**Deployment Flow:**
+
+```
+CI Build → Deploy to Dev → Approval → Deploy to Prod
+```
+
+---
+
+## Security & Best Practices
+
+* Terraform state stored remotely
+* DynamoDB used for state locking
+* No secrets hardcoded in code
+* Environment separation via configuration
+* Manual approval before production deployment
+
+---
+
+## Learning Outcomes
+
+By completing this project, you will understand:
+
+* Terraform module design
+* Multi-environment infrastructure provisioning
+* Basic CI/CD pipeline structure
+* Safe deployment practices
+* Real-world DevOps workflows
+
+---
+
+## Future Improvements
+
+* Separate Terraform state per environment
+* Introduce Terraform workspaces or env folders
+* Add monitoring and logging (CloudWatch / Prometheus)
+* Automate EC2 configuration using user-data or Ansible
+* Migrate deployment to Kubernetes
+
+---
+
+## Project Summary (Interview Ready)
+
+> This project uses Terraform modules to provision AWS infrastructure for multiple environments. CI/CD pipelines automate infrastructure deployment and application delivery. The setup demonstrates environment-based configuration, infrastructure automation, and basic production safety practices.

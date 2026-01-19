@@ -1,0 +1,71 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra-app/**'
+      - '*.tf'
+      - '.github/workflows/terraform-apply.yml'
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.14.3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get Terraform Outputs
+        id: terraform
+        run: |
+          echo "outputs=$(terraform output -json)" >> $GITHUB_OUTPUT
+
+      - name: Post Apply Comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const outputs = ${{ steps.terraform.outputs.outputs }};
+            
+            const outputsMarkdown = Object.entries(outputs).map(([key, value]) => {
+              return `- **${key}**: ${typeof value === 'object' ? JSON.stringify(value).substring(0, 100) : value}`;
+            }).join('\n');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ Terraform Apply Successful\n\n### Outputs:\n${outputsMarkdown}`
+            });
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
