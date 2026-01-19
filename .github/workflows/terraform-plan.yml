@@ -63,3 +63,7 @@ jobs:
               repo: context.repo.repo,
               body: `## Terraform Plan\n\`\`\`\n${plan.substring(0, 3000)}\n\`\`\``
             });
+
+
+# Notes: # - This workflow triggers on pull requests that modify Terraform files or the workflow itself.
+
