@@ -51,3 +51,4 @@ jobs:
         if: ${{ github.event.inputs.environment == 'all' }}
         run: terraform destroy -auto-approve
 
+# comment
