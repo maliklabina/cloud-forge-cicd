@@ -1,11 +1,15 @@
 # Key pair (login)
 resource "aws_key_pair" "my_key" {
-  key_name   = "${var.env}-infra-app-key"
+  key_name   = "${var.env}-infra-app-key-${random_id.suffix.hex}"
   public_key = file("terra-key-ec2.pub")
 
   tags = {
     Environment = var.env
   }
+}
+
+resource "random_id" "suffix" {
+  byte_length = 2
 }
 
 # Default VPC

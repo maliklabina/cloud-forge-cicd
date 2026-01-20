@@ -27,5 +27,3 @@ module "prod_infra" {
 # 2 - terraform plan
 # 3 - terraform apply
 # 4 - terraform destroy dev module only: terraform destroy -target=module.dev-infra
-
-# hey
