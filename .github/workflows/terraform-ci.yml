@@ -1,16 +1,30 @@
-name: Terraform Plan
+name: Terraform CI
 
 on:
   pull_request:
     paths:
       - 'infra-app/**'
       - '*.tf'
-      - '.github/workflows/terraform-plan.yml'
+      - '.github/workflows/terraform-ci.yml'
+
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra-app/**'
+      - '*.tf'
+      - '.github/workflows/terraform-ci.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   plan:
+    name: Terraform Plan
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -23,7 +37,6 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-        # in github secrets we have stored the AWS credentials
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
@@ -41,25 +54,58 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
-      - name: Upload Plan
-        uses: actions/upload-artifact@v3
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: tfplan
           path: tfplan
           retention-days: 1
 
       - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           script: |
-            const fs = require('fs');
             const plan = require('child_process')
               .execSync('terraform show -no-color tfplan')
               .toString();
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `## Terraform Plan\n\`\`\`\n${plan.substring(0, 3000)}\n\`\`\``
             });
+
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: plan
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.14.3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
