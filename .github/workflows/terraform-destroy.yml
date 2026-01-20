@@ -4,20 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to destroy (dev/prod/all)'
+        description: "Environment to destroy (dev or prod)"
         required: true
-        default: 'dev'
         type: choice
         options:
           - dev
           - prod
-          - all
+
+permissions:
+  contents: read
 
 jobs:
   destroy:
     runs-on: ubuntu-latest
     environment: production
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -37,14 +38,10 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Destroy Dev
-        if: ${{ github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'all' }}
-        run: terraform destroy -auto-approve -target=module.dev_infra
+      - name: Select Terraform Workspace
+        run: |
+          terraform workspace select ${{ github.event.inputs.environment }} || \
+          terraform workspace new ${{ github.event.inputs.environment }}
 
-      - name: Destroy Prod
-        if: ${{ github.event.inputs.environment == 'prod' || github.event.inputs.environment == 'all' }}
-        run: terraform destroy -auto-approve -target=module.prod_infra
-
-      - name: Destroy All
-        if: ${{ github.event.inputs.environment == 'all' }}
+      - name: Terraform Destroy
         run: terraform destroy -auto-approve
