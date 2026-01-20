@@ -15,6 +15,11 @@ on:
       - '*.tf'
       - '.github/workflows/terraform-ci.yml'
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   plan:
     name: Terraform Plan
