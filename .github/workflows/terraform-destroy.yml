@@ -27,14 +27,16 @@ jobs:
           aws-region: us-east-2
 
     
-      - name: Terraform Init
-        run: terraform init -reconfigure
-        working-directory: infra-app   # uncomment if needed
+      #- name: Terraform Init
+      #  run: terraform init -reconfigure
+      #  working-directory: infra-app   
 
-      - name: Terraform State Check
-        run: terraform state list
-        working-directory: infra-app
+    #  - name: Terraform State Check
+    #    run: terraform state list
+    #    working-directory: infra-app
 
       - name: Terraform Destroy 
         run: terraform destroy -auto-approve
         working-directory: infra-app
+
+     

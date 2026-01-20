@@ -36,7 +36,7 @@ terraform {
 
   backend "s3" {
     bucket = "cloud-forge-terraform-state"
-    key    = "terraform.tfstate"
+    key    = "state/terraform.tfstate"
     region = "us-east-2"
   }
 }
