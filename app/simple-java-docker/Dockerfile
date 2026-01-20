@@ -1,5 +1,7 @@
+# ------------------------------
 # Stage 1: Build
-FROM openjdk:17.0.9-jdk-alpine3.18 AS builder
+# ------------------------------
+FROM eclipse-temurin:17-jdk-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -7,17 +9,19 @@ WORKDIR /app
 # Copy all source files
 COPY src/ /app/src/
 
-# Compile Java code
+# Compile all Java files into 'out' directory
 RUN javac src/*.java -d out
 
+# ------------------------------
 # Stage 2: Runtime
-FROM openjdk:17.0.9-jdk-alpine3.18
+# ------------------------------
+FROM eclipse-temurin:17-jdk-alpine
 
 
 # Set working directory
 WORKDIR /app
 
-# Copy compiled classes from builder
+# Copy compiled classes from builder stage
 COPY --from=builder /app/out /app
 
 # Run the Java application
