@@ -31,5 +31,7 @@ COPY --from=builder /app/out /app
 # (Optional) Document the port your app uses
 # EXPOSE 3000
 
-# Run the Java application
+# Run the Java application 
 CMD ["java", "Main"]
+
+#comment
