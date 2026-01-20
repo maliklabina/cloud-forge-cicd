@@ -1,0 +1,88 @@
+name: Docker App Deploy via S3
+
+on:
+  #push:
+  #  branches: [ main, test/migrate ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-2
+  IMAGE_NAME: cloud-forge-app
+  S3_BUCKET: cloud-forge-app-images
+  CONTAINER_NAME: cloud-forge-app
+
+jobs:
+  build-and-upload:
+    name: Build & Upload Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE_NAME:${GITHUB_SHA} app/simple-java-docker/
+
+      - name: Save Docker image to tar
+        run: |
+          docker save $IMAGE_NAME:${GITHUB_SHA} > $IMAGE_NAME.tar
+
+      - name: Upload image to S3
+        run: |
+          aws s3 cp $IMAGE_NAME.tar \
+            s3://$S3_BUCKET/docker-images/$IMAGE_NAME-${GITHUB_SHA}.tar
+
+  deploy:
+    name: Deploy Docker Container on EC2
+    runs-on: ubuntu-latest
+    needs: build-and-upload
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Deploy on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_PUBLIC_IP }} << EOF
+            set -e
+
+            # Download Docker image from S3
+            aws s3 cp \
+              s3://$S3_BUCKET/docker-images/$IMAGE_NAME-${GITHUB_SHA}.tar \
+              /tmp/$IMAGE_NAME.tar
+
+            # Load image into Docker
+            docker load < /tmp/$IMAGE_NAME.tar
+
+            # Stop and remove existing container if exists
+            docker stop $CONTAINER_NAME || true
+            docker rm $CONTAINER_NAME || true
+
+            # Run new container
+            docker run -d \
+              --name $CONTAINER_NAME \
+              --restart always \
+              -p 80:3000 \
+              $IMAGE_NAME:${GITHUB_SHA}
+
+            # Optional: clean old images
+            docker image prune -f
+          EOF
