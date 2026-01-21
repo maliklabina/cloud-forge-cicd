@@ -26,3 +26,8 @@ output "security_group_id" {
   description = "ID of the security group"
   value       = aws_security_group.my_security_group.id
 }
+
+# ECR Repository
+output "ecr_repository_url" {
+  value = aws_ecr_repository.app_repo.repository_url
+}
