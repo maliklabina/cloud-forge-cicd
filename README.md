@@ -1,29 +1,40 @@
-
-
-````markdown
 # Terraform AWS Infrastructure & CI/CD Project
 
 ## Overview
 
-This project demonstrates how to provision AWS infrastructure using **Terraform modules** and deploy an application using **CI/CD pipelines**. The architecture supports **multiple environments** (dev, prod) and demonstrates a full DevOps workflow: infrastructure provisioning, application build, artifact storage, deployment, and state management.
+This project demonstrates an end-to-end **DevOps workflow** using **Terraform**, **AWS**, **Docker**, and **CI/CD pipelines**. It focuses on provisioning cloud infrastructure using reusable Terraform modules and deploying a containerized application on EC2 through automated pipelines.
 
-The key goals are:
-
-* Terraform module reuse
-* Multi-environment infrastructure provisioning
-* CI/CD pipeline design
-* Application deployment on EC2 using Docker
-* Proper state management and infrastructure safety
+The architecture supports **multiple environments** (`dev`, `prod`) and follows **industry best practices** for infrastructure automation, application delivery, and Terraform state management.
 
 ---
 
-## Complete Architecture & Flow
+## Project Objectives
 
-### 1. Terraform Remote State (S3 + DynamoDB)
+- Provision AWS infrastructure using Terraform modules
+- Support multiple environments (dev, prod)
+- Implement CI/CD pipelines for infrastructure and application
+- Deploy a Dockerized application on EC2
+- Manage Terraform state securely using S3 and DynamoDB
 
-Terraform uses **S3 buckets** to store state files and **DynamoDB tables** for state locking to prevent concurrent writes.
+---
 
-**S3 bucket template (`terraform.tf`):**
+## Technology Stack
+
+- **Infrastructure as Code:** Terraform
+- **Cloud Provider:** AWS
+- **Compute:** EC2
+- **State Management:** S3 + DynamoDB
+- **Containerization:** Docker
+- **CI/CD:** GitHub Actions
+- **Application:** Java 
+
+---
+
+## Terraform Remote State Management
+
+Terraform uses a **remote backend** to store state files securely and prevent concurrent state updates.
+
+### S3 Backend Configuration
 
 ```hcl
 terraform {
@@ -37,12 +48,14 @@ terraform {
 }
 ````
 
-* `bucket` → Stores Terraform state file
-* `key` → Path inside the bucket, separated per environment (`dev`, `prod`)
-* `dynamodb_table` → Locking table to prevent concurrent apply
-* `encrypt` → State file is encrypted at rest
+### Key Benefits
 
-**DynamoDB Table Template (`dynamodb.tf`):**
+* Centralized state storage
+* Environment-specific state isolation
+* State file encryption at rest
+* Safe concurrent execution using DynamoDB locking
+
+### DynamoDB State Lock Table
 
 ```hcl
 resource "aws_dynamodb_table" "terraform_locks" {
@@ -59,85 +72,102 @@ resource "aws_dynamodb_table" "terraform_locks" {
 
 ---
 
-### 2. Infrastructure Setup Pipeline (Terraform CI)
+## Infrastructure CI Pipeline (Terraform)
 
-**Purpose:** Automatically provision infrastructure using Terraform.
+### Purpose
 
-**Pipeline YAML (`terraform-ci.yml`)**
+Automates the provisioning and management of AWS infrastructure using Terraform.
 
-**Stages & Flow:**
+### Pipeline Flow
 
-1. **Terraform Init** – Initializes backend (S3 + DynamoDB)
-2. **Terraform Validate** – Checks syntax and config correctness
-3. **Terraform Plan** – Generates execution plan
-5. **Terraform Apply** – Creates AWS resources
+1. Terraform Init – Initializes backend and providers
+2. Terraform Validate – Validates Terraform configuration
+3. Terraform Plan – Generates execution plan
+4. Terraform Apply – Provisions AWS resources
 
-**Resources Created by Pipeline:**
+### AWS Resources Provisioned
 
-| Resource Type   | Purpose                                          |
-| --------------- | ------------------------------------------------ |
-| S3 Bucket       | Stores application artifacts and Terraform state |
-| EC2 Instances   | Runs the application container                   |
-| DynamoDB Table  | Manages Terraform state locks                    |
-| Security Groups | Allows SSH / application traffic                 |
-
----
-
-### 3. Application CI Pipeline (`deploy-app.yml`)
-
-**Purpose:** Build the application, create a Docker image, and push artifacts.
-
-**Pipeline Steps:**
-
-1. **Build Application** – Compile Java app from `app/simple-java-docker/src`
-2. **Build Docker Image** – Create Docker image from `Dockerfile`
-3. **Push Image to S3 / ECR** – Store artifact in S3 for EC2 to pull
-
-**Artifact Flow:**
-
-```
-Code Commit → Build → Docker Image → S3 Bucket 
-```
+| Resource Type  | Purpose                                   |
+| -------------- | ----------------------------------------- |
+| S3 Bucket      | Terraform state and application artifacts |
+| EC2 Instance   | Application runtime                       |
+| DynamoDB Table | Terraform state locking                   |
+| Security Group | SSH and application traffic control       |
 
 ---
 
-### 4. Application CD Pipeline
+## Application CI Pipeline
 
-**Purpose:** Deploy the application on EC2 instances provisioned by Terraform.
+### Purpose
 
-**Steps:**
+Builds the application and produces deployable artifacts.
 
-1. **SSH into EC2** – Connect using SSH key (`terra-key-ec2`)
-2. **Pull Latest Docker Image** – Fetch image from S3 or ECR
-3. **Stop Existing Container**
-4. **Run New Container** – Deploy updated application
-5. **Logging & Monitoring** – Optional CloudWatch or Prometheus integration
+### Steps
 
-**Deployment Flow:**
+1. Build Java application
+2. Build Docker image using Dockerfile
+3. Push Docker image to S3 
+
+### Artifact Flow
 
 ```
-Artifact in S3 → Pull on EC2 → Stop old container → Run new container
+Source Code → Build → Docker Image → Artifact Storage
 ```
 
 ---
 
-### 5. State Management
+## Application CD Pipeline
 
-* Terraform stores all resources in the **S3 backend**.
-* Every apply updates the state file:
+### Purpose
 
-  * Which EC2 instances exist
-  * Which S3 buckets exist
-  * Which Docker deployments are associated
-* DynamoDB ensures **single apply at a time**, avoiding conflicts.
+Deploys the application to EC2 instances provisioned by Terraform.
+
+### Deployment Steps
+
+1. Connect to EC2 using SSH
+2. Pull latest Docker image from artifact storage
+3. Stop existing running container
+4. Run new Docker container
+5. Verify application status
 
 ---
 
-### 6. Key Takeaways
+## Terraform State Management
 
-* Terraform manages infrastructure **declaratively**
-* CI/CD pipelines handle application **build and deployment**
-* S3 + DynamoDB ensures **safe state management**
-* EC2 runs **Docker containers** with up-to-date artifacts
-* Multi-environment support allows safe **dev/prod deployments**
-```
+* Terraform tracks all infrastructure resources in state files
+* State is stored securely in S3
+* DynamoDB ensures only one apply operation runs at a time
+* Prevents accidental resource drift and conflicts
+
+---
+
+## Environment Support
+
+| Environment | Description             |
+| ----------- | ----------------------- |
+| dev         | Development and testing |
+| prod        | Production deployment   |
+
+Each environment maintains its **own isolated Terraform state**.
+
+---
+
+## Key Highlights
+
+* Reusable and modular Terraform code
+* Automated infrastructure provisioning
+* Secure Terraform state handling
+* Docker-based application deployment
+* CI/CD pipelines aligned with industry standards
+* Clear separation of infrastructure and application workflows
+
+---
+
+## Future Enhancements
+
+* Add monitoring using CloudWatch or Prometheus
+* Implement centralized logging
+* Add automated testing in CI pipeline
+* Introduce blue-green or rolling deployments
+
+
