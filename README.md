@@ -133,38 +133,7 @@ Artifact in S3 → Pull on EC2 → Stop old container → Run new container
 
 ---
 
-### 6. Full Architecture Diagram
-
-```mermaid
-graph TD
-    A[Code Repository] --> B[GitHub Actions CI/CD]
-
-    subgraph "Terraform CI (Infra Pipeline)"
-        B --> C[Terraform Init → Plan → Apply]
-        C --> D[S3 Bucket (State + Artifacts)]
-        C --> E[DynamoDB Table (State Lock)]
-        C --> F[EC2 Instances]
-    end
-
-    subgraph "Application CI/CD"
-        B --> G[Build Java App → Docker Image]
-        G --> D
-        F --> H[Deploy Docker Container on EC2]
-    end
-
-    style A fill:#f9f,stroke:#333,stroke-width:1px
-    style B fill:#bbf,stroke:#333,stroke-width:1px
-    style C fill:#bfb,stroke:#333,stroke-width:1px
-    style D fill:#ffb,stroke:#333,stroke-width:1px
-    style E fill:#fbf,stroke:#333,stroke-width:1px
-    style F fill:#bff,stroke:#333,stroke-width:1px
-    style G fill:#fb8,stroke:#333,stroke-width:1px
-    style H fill:#8fb,stroke:#333,stroke-width:1px
-```
-
----
-
-### 7. Key Takeaways
+### 6. Key Takeaways
 
 * Terraform manages infrastructure **declaratively**
 * CI/CD pipelines handle application **build and deployment**
