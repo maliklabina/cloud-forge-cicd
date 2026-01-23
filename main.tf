@@ -1,12 +1,11 @@
 module "dev_infra" {
     source = "./infra-app"
     env    = "dev"
-    bucket_name = "infra-bucket"
+    bucket_name = "my-infra-bucket"
     ec2_ami_id = "ami-0c55b159cbfafe1f0"   
     instance_type = "t3.micro"
     instance_count = 1
     hash_key = "studentID"
-
 
 }
 
@@ -14,7 +13,7 @@ module "dev_infra" {
 module "prod_infra" {
     source = "./infra-app"
     env    = "prod"
-    bucket_name = "infra-bucket"
+    bucket_name = "my-infra-bucket"
     ec2_ami_id = "ami-0c55b159cbfafe1f0"   
     instance_type = "t3.micro"
     instance_count = 2

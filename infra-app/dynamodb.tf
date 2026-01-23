@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-    name   = "${var.env}-infra-app-table"
+    name   = "${var.env}-infra-table"
     billing_mode = "PAY_PER_REQUEST"
     hash_key     = var.hash_key
 
@@ -9,7 +9,7 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
     }
 
     tags = {
-        Name        = "${var.env}-my-dynamodb-table"
+        Name        = "${var.env}-dynamodb-table"
         Environment = var.env
     }
 } 

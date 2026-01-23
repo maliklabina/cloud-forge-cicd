@@ -1,6 +1,6 @@
 # Key pair (login)
 resource "aws_key_pair" "my_key" {
-  key_name   = "${var.env}-infra-key"
+  key_name   = "${var.env}-infra-key-${random_id.suffix.hex}"
   public_key = file("terra-key-ec2.pub")
 
   tags = {
@@ -8,9 +8,9 @@ resource "aws_key_pair" "my_key" {
   }
 }
 
-#resource "random_id" "suffix" {
-#  byte_length = 2
-#3}
+resource "random_id" "suffix" {
+  byte_length = 2
+}
 
 # ${random_id.suffix.hex}
 
