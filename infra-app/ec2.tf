@@ -1,6 +1,6 @@
 # Key pair (login)
 resource "aws_key_pair" "my_key" {
-  key_name   = "${var.env}-infra-app-key-${random_id.suffix.hex}"
+  key_name   = "${var.env}-infra-key"
   public_key = file("terra-key-ec2.pub")
 
   tags = {
@@ -8,19 +8,35 @@ resource "aws_key_pair" "my_key" {
   }
 }
 
-resource "random_id" "suffix" {
-  byte_length = 2
-}
+#resource "random_id" "suffix" {
+#  byte_length = 2
+#3}
+
+# ${random_id.suffix.hex}
 
 # Default VPC
-resource "aws_default_vpc" "default" {
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "${var.env}-vpc"
+  }
+}
+
+# subnet
+resource "aws_subnet" "public" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-east-2a"
 }
 
 # Security group
 resource "aws_security_group" "my_security_group" {
   name        = "${var.env}-infra-app-sg"
   description = "Security group for infra-app"
-  vpc_id      = aws_default_vpc.default.id
+  vpc_id = aws_vpc.main.id
 
   depends_on = [aws_key_pair.my_key]
 
@@ -63,6 +79,9 @@ resource "aws_security_group" "my_security_group" {
   }
 }
 
+
+
+
 # EC2 instances
 resource "aws_instance" "my_instance" {
   count           = var.instance_count
@@ -77,7 +96,7 @@ resource "aws_instance" "my_instance" {
   }
 
   tags = {
-    Name        = "${var.env}-infra-app-instance"
+    Name        = "${var.env}-infra-instance"
     Environment = var.env
   }
 }

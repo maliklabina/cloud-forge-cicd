@@ -1,19 +1,20 @@
 name: Terraform CI
 
 on:
-  pull_request:
-    paths:
-      - 'infra-app/**'
-      - '*.tf'
-      - '.github/workflows/terraform-ci.yml'
+  workflow_dispatch:
+  #pull_request:
+  #  paths:
+  #    - 'infra-app/**'
+  #    - '*.tf'
+  #    - '.github/workflows/terraform-ci.yml'
 
-  push:
-    branches:
-      - main
-    paths:
-      - 'infra-app/**'
-      - '*.tf'
-      - '.github/workflows/terraform-ci.yml'
+  #push:
+  #  branches:
+  #    - main
+  #  paths:
+  #    - 'infra-app/**'
+  #    - '*.tf'
+  #     - '.github/workflows/terraform-ci.yml'
 
 permissions:
   contents: read
